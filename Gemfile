@@ -26,6 +26,9 @@ group :development, :test do
   gem "dotenv-rails", "~> 2.8.1"
   gem "pry-rails"
   gem "pry-byebug"
+  gem "rspec-rails", "~> 6.1.0"
+  gem "factory_bot_rails"
+  gem "faker"
 end
 
 group :development do
@@ -35,4 +38,6 @@ end
 group :test do
   gem "capybara"
   gem "selenium-webdriver"
+  gem "webmock"
+  gem "shoulda-matchers"
 end
