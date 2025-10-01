@@ -1,0 +1,19 @@
+<div class="px-4 sm:px-6 lg:px-8">
+  <div class="md:grid md:grid-cols-3 md:gap-6">
+    <div class="md:col-span-1">
+      <div class="px-4 sm:px-0">
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Редактировать канал</h3>
+        <p class="mt-1 text-sm text-gray-600">
+          Измените настройки канала уведомлений.
+        </p>
+      </div>
+    </div>
+    <div class="mt-5 md:mt-0 md:col-span-2">
+      <div class="shadow sm:rounded-md sm:overflow-hidden">
+        <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
+          <%= render "form", channel: @channel %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
