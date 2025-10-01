@@ -26,7 +26,7 @@ group :development, :test do
   gem "dotenv-rails", "~> 2.8.1"
   gem "pry-rails"
   gem "pry-byebug"
-  gem "rspec-rails", "~> 6.1.0"
+  gem "rspec-rails", "~> 8.0.2"
   gem "factory_bot_rails"
   gem "faker"
 end
