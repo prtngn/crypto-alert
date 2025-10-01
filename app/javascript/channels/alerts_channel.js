@@ -13,14 +13,11 @@ consumer.subscriptions.create("AlertsChannel", {
   received(data) {
     console.log("📨 Получено сообщение:", data)
 
-    // Обновление цены
-    if (data.symbol && data.price) {
-      this.updatePrice(data.symbol, data.price, data.exchange)
-    }
-
     // Обновление алерта
     if (data.type === "price_update") {
       this.updateAlertPrice(data.alert_id, data.current_price, data.exchange)
+      // Также обновляем общую цену для символа
+      this.updatePrice(data.symbol, data.current_price, data.exchange)
     }
 
     // Срабатывание алерта

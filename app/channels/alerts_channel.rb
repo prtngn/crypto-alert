@@ -1,7 +1,6 @@
 class AlertsChannel < ApplicationCable::Channel
   def subscribed
     stream_from "alerts"
-    stream_from "prices"
 
     send_current_prices
   end
