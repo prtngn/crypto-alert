@@ -1,0 +1,135 @@
+<div class="px-4 sm:px-6 lg:px-8">
+  <div class="sm:flex sm:items-center">
+    <div class="sm:flex-auto">
+      <h1 class="text-3xl font-bold text-gray-900">Каналы уведомлений</h1>
+      <p class="mt-2 text-sm text-gray-700">
+        Настройте каналы для получения уведомлений о срабатывании алертов
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+      <%= link_to new_notification_channel_path, class: "inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto" do %>
+        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        Добавить канал
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Channels Grid -->
+  <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <% if @channels.empty? %>
+      <div class="col-span-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Каналов пока нет</h3>
+        <p class="mt-1 text-sm text-gray-500">Начните с создания первого канала уведомлений</p>
+        <div class="mt-6">
+          <%= link_to new_notification_channel_path, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Добавить канал
+          <% end %>
+        </div>
+      </div>
+    <% else %>
+      <% @channels.each do |channel| %>
+        <div class="relative flex flex-col rounded-lg border border-gray-300 bg-white shadow-sm <%= 'opacity-60' unless channel.active? %>">
+          <div class="flex flex-1 flex-col p-6">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <h3 class="text-lg font-medium text-gray-900"><%= channel.name %></h3>
+                <p class="mt-1 text-sm text-gray-500">
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= channel.channel_type == 'log' ? 'bg-gray-100 text-gray-800' : channel.channel_type == 'email' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800' %>">
+                    <%= channel.channel_type.upcase %>
+                  </span>
+                </p>
+              </div>
+              <div class="ml-4">
+                <% if channel.active? %>
+                  <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
+                    <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                      <circle cx="4" cy="4" r="3" />
+                    </svg>
+                    Активен
+                  </span>
+                <% else %>
+                  <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">
+                    Выключен
+                  </span>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="mt-4 flex-1">
+              <% if channel.config.present? %>
+                <dl class="space-y-1">
+                  <% channel.config.each do |key, value| %>
+                    <div class="flex justify-between text-sm">
+                      <dt class="font-medium text-gray-500"><%= key.humanize %>:</dt>
+                      <dd class="text-gray-900 truncate max-w-[150px]" title="<%= value %>">
+                        <%= key.include?('token') || key.include?('password') ? '••••••••' : value %>
+                      </dd>
+                    </div>
+                  <% end %>
+                </dl>
+              <% end %>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <!-- Edit Button -->
+                <%= link_to edit_notification_channel_path(channel), 
+                    class: "inline-flex items-center p-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-colors duration-200",
+                    title: "Редактировать" do %>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                <% end %>
+
+                <!-- Test Button -->
+                <%= button_to test_notification_channel_path(channel), 
+                    method: :post, 
+                    class: "inline-flex items-center p-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 hover:text-green-700 transition-colors duration-200",
+                    title: "Отправить тестовое уведомление" do %>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                <% end %>
+
+                <!-- Toggle Active Button -->
+                <%= button_to toggle_active_notification_channel_path(channel), 
+                    method: :post, 
+                    class: "inline-flex items-center p-2 text-sm font-medium #{channel.active? ? 'text-orange-600 bg-orange-50 hover:bg-orange-100 hover:text-orange-700' : 'text-gray-600 bg-gray-50 hover:bg-gray-100 hover:text-gray-700'} rounded-lg transition-colors duration-200",
+                    title: channel.active? ? "Выключить канал" : "Включить канал" do %>
+                  <% if channel.active? %>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                    </svg>
+                  <% else %>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  <% end %>
+                <% end %>
+              </div>
+
+              <!-- Delete Button (separated for emphasis) -->
+              <%= button_to notification_channel_path(channel), 
+                  method: :delete, 
+                  data: { turbo_confirm: "Вы уверены, что хотите удалить этот канал?" }, 
+                  class: "inline-flex items-center p-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors duration-200",
+                  title: "Удалить канал" do %>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

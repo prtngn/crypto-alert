@@ -13,6 +13,14 @@ class NotificationChannel < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :by_type, ->(type) { where(channel_type: type) }
 
+  def send_notification(alert, current_price)
+    return unless active?
+
+    adapter_class = "NotificationAdapters::#{channel_type.capitalize}Adapter".constantize
+    adapter = adapter_class.new(self)
+    adapter.send_notification(alert, current_price)
+  end
+
   private
 
   def validate_config

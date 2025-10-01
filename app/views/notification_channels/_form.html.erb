@@ -1,0 +1,187 @@
+<div class="space-y-6">
+  <%= form_with(model: channel, class: "space-y-8 divide-y divide-gray-200") do |form| %>
+    <div class="space-y-8 divide-y divide-gray-200">
+      <div>
+        <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+          <!-- Name -->
+          <div class="sm:col-span-4">
+            <%= form.label :name, "Название", class: "block text-sm font-medium text-gray-700" %>
+            <div class="mt-1">
+              <%= form.text_field :name, 
+                  placeholder: "Мой канал уведомлений", 
+                  class: "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md #{'border-red-300' if channel.errors[:name].any?}",
+                  required: true %>
+            </div>
+            <% if channel.errors[:name].any? %>
+              <p class="mt-2 text-sm text-red-600"><%= channel.errors[:name].first %></p>
+            <% end %>
+          </div>
+
+          <!-- Channel Type -->
+          <div class="sm:col-span-3">
+            <%= form.label :channel_type, "Тип канала", class: "block text-sm font-medium text-gray-700" %>
+            <div class="mt-1">
+              <%= form.select :channel_type, 
+                  [
+                    ["📝 Лог файл", "log"],
+                    ["📧 Email", "email"],
+                    ["💬 Telegram", "telegram"],
+                    ["🔔 Браузер", "browser"]
+                  ],
+                  {},
+                  {
+                    class: "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md",
+                    required: true,
+                    onchange: "toggleConfigFields(this.value)"
+                  } %>
+            </div>
+            <% if channel.errors[:channel_type].any? %>
+              <p class="mt-2 text-sm text-red-600"><%= channel.errors[:channel_type].first %></p>
+            <% end %>
+          </div>
+
+          <!-- Active -->
+          <div class="sm:col-span-6">
+            <div class="flex items-start">
+              <div class="flex items-center h-5">
+                <%= form.check_box :active, class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" %>
+              </div>
+              <div class="ml-3 text-sm">
+                <%= form.label :active, "Активен", class: "font-medium text-gray-700" %>
+                <p class="text-gray-500">Канал будет использоваться для отправки уведомлений</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuration Fields -->
+          <div class="sm:col-span-6">
+            <div class="bg-gray-50 rounded-lg p-4">
+              <h4 class="text-sm font-medium text-gray-900 mb-4">Настройки канала</h4>
+              
+              <!-- Log config (always visible for existing log channels) -->
+              <div id="log-config" class="<%= 'hidden' unless channel.channel_type == 'log' || channel.new_record? %> space-y-4">
+                <p class="text-sm text-gray-600">
+                  Уведомления будут записываться в файл <code class="bg-gray-200 px-1 rounded">log/alerts.log</code>
+                </p>
+              </div>
+
+              <!-- Email config -->
+              <div id="email-config" class="<%= 'hidden' unless channel.channel_type == 'email' %> space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Email адрес</label>
+                  <%= text_field_tag "notification_channel[config][to]", 
+                      channel.config&.[]("to"),
+                      placeholder: "user@example.com",
+                      class: "mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" %>
+                  <p class="mt-1 text-sm text-gray-500">Email на который будут приходить уведомления</p>
+                </div>
+              </div>
+
+              <!-- Telegram config -->
+              <div id="telegram-config" class="<%= 'hidden' unless channel.channel_type == 'telegram' %> space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Bot Token</label>
+                  <%= text_field_tag "notification_channel[config][bot_token]", 
+                      channel.config&.[]("bot_token"),
+                      placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+                      class: "mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" %>
+                  <p class="mt-1 text-sm text-gray-500">
+                    Токен бота Telegram. Получите у 
+                    <a href="https://t.me/botfather" target="_blank" class="text-indigo-600 hover:text-indigo-500">@BotFather</a>
+                  </p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Chat ID</label>
+                  <%= text_field_tag "notification_channel[config][chat_id]", 
+                      channel.config&.[]("chat_id"),
+                      placeholder: "123456789",
+                      class: "mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" %>
+                  <p class="mt-1 text-sm text-gray-500">
+                    ID чата или канала. Узнайте у 
+                    <a href="https://t.me/userinfobot" target="_blank" class="text-indigo-600 hover:text-indigo-500">@userinfobot</a>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Browser config -->
+              <div id="browser-config" class="<%= 'hidden' unless channel.channel_type == 'browser' %> space-y-4">
+                <div class="rounded-md bg-blue-50 p-4">
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                      <h3 class="text-sm font-medium text-blue-800">Browser Notifications</h3>
+                      <div class="mt-2 text-sm text-blue-700">
+                        <p>Уведомления будут показываться в браузере через Web Notifications API.</p>
+                        <p class="mt-2"><strong>Требования:</strong></p>
+                        <ul class="list-disc list-inside mt-1">
+                          <li>Браузер должен поддерживать Notifications API</li>
+                          <li>Пользователь должен разрешить уведомления</li>
+                          <li>Страница должна быть открыта в браузере</li>
+                        </ul>
+                        <p class="mt-2">Никаких дополнительных настроек не требуется.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <% if channel.errors[:config].any? %>
+                <p class="mt-2 text-sm text-red-600"><%= channel.errors[:config].first %></p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-5">
+      <div class="flex justify-end space-x-3">
+        <%= link_to notification_channels_path, class: "inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Отмена
+        <% end %>
+        <%= form.submit class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" do %>
+          <% if channel.persisted? %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Обновить канал
+          <% else %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Создать канал
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<script>
+function toggleConfigFields(channelType) {
+  // Hide all config sections
+  document.getElementById('log-config').classList.add('hidden');
+  document.getElementById('email-config').classList.add('hidden');
+  document.getElementById('telegram-config').classList.add('hidden');
+  document.getElementById('browser-config').classList.add('hidden');
+  
+  // Show the selected one
+  if (channelType === 'log') {
+    document.getElementById('log-config').classList.remove('hidden');
+  } else if (channelType === 'email') {
+    document.getElementById('email-config').classList.remove('hidden');
+  } else if (channelType === 'telegram') {
+    document.getElementById('telegram-config').classList.remove('hidden');
+  } else if (channelType === 'browser') {
+    document.getElementById('browser-config').classList.remove('hidden');
+  }
+}
+</script>
