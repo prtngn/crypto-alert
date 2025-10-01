@@ -51,20 +51,17 @@ class Alert < ApplicationRecord
     manager = ExchangeManager.instance
     manager.add_alert(self)
     manager.subscribe_to_symbol(symbol)
-    Rails.logger.info "✅ Алерт ##{id} (#{symbol}) подписан на обновления"
+    Rails.logger.debug "✅ Алерт ##{id} (#{symbol}) подписан на обновления"
   end
 
   def manage_websocket_subscription
     manager = ExchangeManager.instance
 
-    # Если алерт стал активным и не сработавшим - добавляем в кеш и подписываемся
     if saved_change_to_active? && active? && !triggered?
       manager.add_alert(self)
       manager.subscribe_to_symbol(symbol)
-    # Если алерт обновился, но остался активным - обновляем в кеше
     elsif active? && !triggered? && (saved_change_to_threshold_price? || saved_change_to_direction?)
       manager.update_alert(self)
-    # Если алерт деактивирован или сработал - удаляем из кеша
     elsif (saved_change_to_active? && !active?) || saved_change_to_triggered_at?
       manager.remove_alert(id, symbol)
       check_websocket_unsubscribe

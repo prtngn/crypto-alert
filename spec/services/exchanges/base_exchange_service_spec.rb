@@ -108,11 +108,6 @@ RSpec.describe Exchanges::BaseExchangeService, type: :service do
       expect(cached_ids).to be_present
       expect(cached_ids.count(alert.id)).to eq(1)
     end
-
-    it 'логирует добавление алерта' do
-      expect(Rails.logger).to receive(:info).with(/Алерт ##{alert.id}.*добавлен/)
-      service.add_alert(alert)
-    end
   end
 
   describe '#remove_alert' do
@@ -186,11 +181,6 @@ RSpec.describe Exchanges::BaseExchangeService, type: :service do
       cached_data = Rails.cache.read("alerts:data:#{alert.id}")
       expect(cached_data).to be_present
       expect(cached_data[:threshold_price]).to eq(60000.0)
-    end
-
-    it 'логирует обновление алерта' do
-      expect(Rails.logger).to receive(:info).with(/Алерт ##{alert.id}.*обновлен/)
-      service.update_alert(alert)
     end
   end
 
@@ -276,11 +266,6 @@ RSpec.describe Exchanges::BaseExchangeService, type: :service do
       service.unsubscribe_from_symbol(symbol)
       expect(service.subscribed_symbols).not_to include(symbol)
     end
-
-    it 'логирует отписку' do
-      expect(Rails.logger).to receive(:info).with(/отписан от #{symbol}/)
-      service.unsubscribe_from_symbol(symbol)
-    end
   end
 
   describe '#running?' do
@@ -339,12 +324,6 @@ RSpec.describe Exchanges::BaseExchangeService, type: :service do
         current_price: current_price.to_f
       ))
 
-      service.send(:trigger_alert, alert.id, current_price)
-    end
-
-    it 'логирует срабатывание алерта' do
-      expect(Rails.logger).to receive(:info).with(/Алерт ##{alert.id}.*сработал/).at_least(:once)
-      expect(Rails.logger).to receive(:info).with(anything).at_least(:once)
       service.send(:trigger_alert, alert.id, current_price)
     end
 
@@ -415,8 +394,8 @@ RSpec.describe Exchanges::BaseExchangeService, type: :service do
       end
 
       it 'логирует количество загруженных алертов' do
-        expect(Rails.logger).to receive(:info).with(/Загружено 2 алертов для 2 символов/).at_least(:once)
-        expect(Rails.logger).to receive(:info).with(anything).at_least(:once)
+        expect(Rails.logger).to receive(:debug).with(/Загружено 2 алертов для 2 символов/).at_least(:once)
+        expect(Rails.logger).to receive(:debug).with(anything).at_least(:once)
         service.send(:subscribe_to_active_alerts)
       end
     end

@@ -331,8 +331,7 @@ RSpec.describe Exchanges::BinanceService, type: :service do
         threshold_price: alert.threshold_price,
         direction: alert.direction,
         notification_channel_ids: [],
-        last_price: nil,
-        initialized: false
+        last_price: nil
       })
     end
 

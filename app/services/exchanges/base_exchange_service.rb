@@ -43,11 +43,10 @@ module Exchanges
         threshold_price: alert.threshold_price,
         direction: alert.direction,
         notification_channel_ids: alert.notification_channel_ids,
-        last_price: nil, # Будет установлена при первом обновлении цены
-        initialized: false # Флаг для отслеживания инициализации
+        last_price: nil
       })
 
-      Rails.logger.info "📥 Алерт ##{alert.id} (#{alert.symbol}) добавлен в кеш #{exchange_name}"
+      Rails.logger.debug "📥 Алерт ##{alert.id} (#{alert.symbol}) добавлен в кеш #{exchange_name}"
     end
 
     def remove_alert(alert_id, symbol)
@@ -63,22 +62,21 @@ module Exchanges
       end
 
       Rails.cache.delete("alerts:data:#{alert_id}")
-      Rails.logger.info "📤 Алерт ##{alert_id} (#{symbol}) удален из кеша #{exchange_name}"
+      Rails.logger.debug "📤 Алерт ##{alert_id} (#{symbol}) удален из кеша #{exchange_name}"
     end
 
     def update_alert(alert)
       data_key = "alerts:data:#{alert.id}"
       existing_data = Rails.cache.read(data_key) || {}
-      
+
       Rails.cache.write(data_key, {
         symbol: alert.symbol,
         threshold_price: alert.threshold_price,
         direction: alert.direction,
         notification_channel_ids: alert.notification_channel_ids,
-        last_price: existing_data[:last_price], # Сохраняем существующую цену
-        initialized: existing_data[:initialized] || false
+        last_price: existing_data[:last_price]
       })
-      Rails.logger.info "🔄 Алерт ##{alert.id} (#{alert.symbol}) обновлен в кеше #{exchange_name}"
+      Rails.logger.debug "🔄 Алерт ##{alert.id} (#{alert.symbol}) обновлен в кеше #{exchange_name}"
     end
 
     def alerts_count_for_symbol(symbol)
@@ -92,12 +90,12 @@ module Exchanges
 
       begin
         ws_url = build_websocket_url(symbol)
-        Rails.logger.info "🌐 #{exchange_name} Подключение к WebSocket для #{symbol}: #{ws_url}"
+        Rails.logger.debug "🌐 #{exchange_name} Подключение к WebSocket для #{symbol}: #{ws_url}"
 
         ws = Faye::WebSocket::Client.new(ws_url)
 
         ws.on :open do |event|
-          Rails.logger.info "🔗 #{exchange_name} WebSocket подключен для #{symbol}"
+          Rails.logger.debug "🔗 #{exchange_name} WebSocket подключен для #{symbol}"
           @subscribed_symbols.add(symbol)
         end
 
@@ -118,7 +116,7 @@ module Exchanges
 
         @connections[symbol] = ws
         @subscribed_symbols.add(symbol)
-        Rails.logger.info "✅ #{exchange_name} WebSocket клиент создан для #{symbol}"
+        Rails.logger.debug "✅ #{exchange_name} WebSocket клиент создан для #{symbol}"
       rescue => e
         Rails.logger.error "❌ Ошибка подключения к #{exchange_name} для #{symbol}: #{e.message}"
         Rails.logger.error e.backtrace.join("\n")
@@ -131,7 +129,7 @@ module Exchanges
         ws.close
         @connections.delete(symbol)
         @subscribed_symbols.delete(symbol)
-        Rails.logger.info "🔌 #{exchange_name} отписан от #{symbol}"
+        Rails.logger.debug "🔌 #{exchange_name} отписан от #{symbol}"
       end
     end
 
@@ -167,7 +165,7 @@ module Exchanges
 
       alerts.each { |alert| add_alert(alert) }
       symbols = alerts.map(&:symbol).uniq
-      Rails.logger.info "📊 #{exchange_name}: Загружено #{alerts.count} алертов для #{symbols.count} символов: #{symbols.join(', ')}"
+      Rails.logger.debug "📊 #{exchange_name}: Загружено #{alerts.count} алертов для #{symbols.count} символов: #{symbols.join(', ')}"
       symbols.each { |symbol| subscribe_to_symbol(symbol) }
     end
 
@@ -191,7 +189,7 @@ module Exchanges
           triggered_at: alert.triggered_at.iso8601
         })
 
-        Rails.logger.info "🔔 #{exchange_name} Алерт ##{alert_id} (#{alert.symbol}) сработал при цене $#{current_price}"
+        Rails.logger.debug "🔔 #{exchange_name} Алерт ##{alert_id} (#{alert.symbol}) сработал при цене $#{current_price}"
       end
     rescue => e
       Rails.logger.error "❌ #{exchange_name} Ошибка срабатывания алерта ##{alert_id}: #{e.message}"
