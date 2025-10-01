@@ -76,12 +76,8 @@ RSpec.describe Exchanges::BinanceService, type: :service do
         }.not_to raise_error
       end
 
-      it 'отправляет broadcast с данными о цене' do
-        expect(ActionCable.server).to receive(:broadcast).with("prices", {
-          symbol: symbol,
-          price: 50000.00,
-          exchange: "binance"
-        })
+      it 'не отправляет broadcast когда нет алертов' do
+        expect(ActionCable.server).not_to receive(:broadcast)
 
         service.send(:handle_message, symbol, ticker_data)
       end
@@ -109,21 +105,15 @@ RSpec.describe Exchanges::BinanceService, type: :service do
           }.not_to raise_error
         end
 
-        it 'отправляет broadcast с данными о цене' do
-          # Ожидаем broadcast в канал "prices"
-          expect(ActionCable.server).to receive(:broadcast).with("prices", {
-            symbol: symbol,
-            price: 50000.00,
-            exchange: "binance"
-          }).ordered
-
-          # Ожидаем broadcast в канал "alerts" для сработавшего алерта
+        it 'инициализирует алерт при первом обновлении' do
+          # Ожидаем broadcast в канал "alerts" для инициализации (не срабатывания)
           expect(ActionCable.server).to receive(:broadcast).with("alerts", hash_including(
-            type: "triggered",
+            type: "price_update",
             alert_id: alert.id,
             symbol: symbol,
-            current_price: 50000.00
-          )).ordered
+            current_price: 50000.00,
+            last_price: 50000.00
+          ))
 
           service.send(:handle_message, symbol, ticker_data)
         end
@@ -147,20 +137,13 @@ RSpec.describe Exchanges::BinanceService, type: :service do
         end
 
         it 'отправляет broadcast с данными о цене' do
-          # Ожидаем broadcast в канал "prices"
-          expect(ActionCable.server).to receive(:broadcast).with("prices", {
-            symbol: symbol,
-            price: 45000.00,
-            exchange: "binance"
-          }).ordered
-
           # Ожидаем broadcast в канал "alerts" для обновления цены (алерт не сработал)
           expect(ActionCable.server).to receive(:broadcast).with("alerts", hash_including(
             type: "price_update",
             alert_id: alert.id,
             symbol: symbol,
             current_price: 45000.00
-          )).ordered
+          ))
 
           service.send(:handle_message, symbol, ticker_data_below)
         end
@@ -195,21 +178,15 @@ RSpec.describe Exchanges::BinanceService, type: :service do
           }.not_to raise_error
         end
 
-        it 'отправляет broadcast с данными о цене' do
-          # Ожидаем broadcast в канал "prices"
-          expect(ActionCable.server).to receive(:broadcast).with("prices", {
-            symbol: "ETHUSDT",
-            price: 2900.00,
-            exchange: "binance"
-          }).ordered
-
-          # Ожидаем broadcast в канал "alerts" для сработавшего алерта (цена ниже порога)
+        it 'инициализирует алерт при первом обновлении' do
+          # Ожидаем broadcast в канал "alerts" для инициализации (не срабатывания)
           expect(ActionCable.server).to receive(:broadcast).with("alerts", hash_including(
-            type: "triggered",
+            type: "price_update",
             alert_id: alert_below.id,
             symbol: "ETHUSDT",
-            current_price: 2900.00
-          )).ordered
+            current_price: 2900.00,
+            last_price: 2900.00
+          ))
 
           service.send(:handle_message, "ETHUSDT", eth_ticker_below)
         end
@@ -253,14 +230,168 @@ RSpec.describe Exchanges::BinanceService, type: :service do
       { "c" => "50000.00", "v" => "1000", "P" => "2", "h" => "51000", "l" => "49000" }.to_json
     end
 
-    it 'отправляет обновления цен через ActionCable' do
-      expect(ActionCable.server).to receive(:broadcast).with("prices", hash_including(
-        symbol: symbol,
-        price: 50000.00,
-        exchange: "binance"
-      ))
+    before do
+      # Очищаем кеш, чтобы убедиться, что нет алертов
+      Rails.cache.delete_matched("alerts:*")
+    end
+
+    it 'не отправляет broadcast когда нет алертов' do
+      expect(ActionCable.server).not_to receive(:broadcast)
 
       service.send(:handle_message, symbol, ticker_data)
+    end
+  end
+
+  describe '#check_threshold_crossing' do
+    let(:threshold_price) { BigDecimal("100.0") }
+
+    context 'для направления "above"' do
+      it 'возвращает true при пересечении снизу вверх' do
+        result = service.send(:check_threshold_crossing,
+          BigDecimal("110.0"), # current_price
+          BigDecimal("95.0"),  # last_price
+          threshold_price,
+          "above"
+        )
+        expect(result).to be true
+      end
+
+      it 'возвращает false если цена уже была выше порога' do
+        result = service.send(:check_threshold_crossing,
+          BigDecimal("120.0"), # current_price
+          BigDecimal("105.0"), # last_price
+          threshold_price,
+          "above"
+        )
+        expect(result).to be false
+      end
+
+      it 'возвращает false если цена все еще ниже порога' do
+        result = service.send(:check_threshold_crossing,
+          BigDecimal("90.0"),  # current_price
+          BigDecimal("95.0"),  # last_price
+          threshold_price,
+          "above"
+        )
+        expect(result).to be false
+      end
+
+      it 'возвращает false если last_price равен nil' do
+        result = service.send(:check_threshold_crossing,
+          BigDecimal("110.0"), # current_price
+          nil,                 # last_price
+          threshold_price,
+          "above"
+        )
+        expect(result).to be false
+      end
+    end
+
+    context 'для направления "below"' do
+      it 'возвращает true при пересечении сверху вниз' do
+        result = service.send(:check_threshold_crossing,
+          BigDecimal("90.0"),  # current_price
+          BigDecimal("105.0"), # last_price
+          threshold_price,
+          "below"
+        )
+        expect(result).to be true
+      end
+
+      it 'возвращает false если цена уже была ниже порога' do
+        result = service.send(:check_threshold_crossing,
+          BigDecimal("80.0"),  # current_price
+          BigDecimal("95.0"),  # last_price
+          threshold_price,
+          "below"
+        )
+        expect(result).to be false
+      end
+
+      it 'возвращает false если цена все еще выше порога' do
+        result = service.send(:check_threshold_crossing,
+          BigDecimal("110.0"), # current_price
+          BigDecimal("105.0"), # last_price
+          threshold_price,
+          "below"
+        )
+        expect(result).to be false
+      end
+    end
+  end
+
+  describe 'логика инициализации алерта' do
+    let(:symbol) { "STRKUSDT" }
+    let!(:alert) { create(:alert, symbol: symbol, threshold_price: 0.1, direction: "above") }
+
+    before do
+      Rails.cache.write("alerts:symbols:#{symbol}", [ alert.id ])
+      Rails.cache.write("alerts:data:#{alert.id}", {
+        symbol: alert.symbol,
+        threshold_price: alert.threshold_price,
+        direction: alert.direction,
+        notification_channel_ids: [],
+        last_price: nil,
+        initialized: false
+      })
+    end
+
+    context 'при первом обновлении цены' do
+      let(:first_ticker_data) do
+        { "c" => "0.13", "v" => "1000", "P" => "2", "h" => "0.15", "l" => "0.12" }.to_json
+      end
+
+      it 'инициализирует алерт без срабатывания' do
+        expect(ActionCable.server).to receive(:broadcast).with("alerts", hash_including(
+          type: "price_update",
+          alert_id: alert.id,
+          symbol: symbol,
+          current_price: 0.13,
+          last_price: 0.13
+        ))
+
+        service.send(:handle_message, symbol, first_ticker_data)
+      end
+
+      it 'не срабатывает алерт при первом обновлении' do
+        expect(ActionCable.server).not_to receive(:broadcast).with("alerts", hash_including(
+          type: "triggered"
+        ))
+
+        service.send(:handle_message, symbol, first_ticker_data)
+      end
+    end
+
+    context 'при последующих обновлениях' do
+      let(:first_ticker_data) do
+        { "c" => "0.13", "v" => "1000", "P" => "2", "h" => "0.15", "l" => "0.12" }.to_json
+      end
+
+      let(:second_ticker_data) do
+        { "c" => "0.08", "v" => "1000", "P" => "2", "h" => "0.15", "l" => "0.08" }.to_json
+      end
+
+      let(:third_ticker_data) do
+        { "c" => "0.12", "v" => "1000", "P" => "2", "h" => "0.15", "l" => "0.08" }.to_json
+      end
+
+      it 'срабатывает алерт только при пересечении порога снизу вверх' do
+        # Первое обновление - инициализация
+        service.send(:handle_message, symbol, first_ticker_data)
+
+        # Второе обновление - цена упала ниже порога
+        service.send(:handle_message, symbol, second_ticker_data)
+
+        # Третье обновление - цена поднялась выше порога (должен сработать алерт)
+        expect(ActionCable.server).to receive(:broadcast).with("alerts", hash_including(
+          type: "triggered",
+          alert_id: alert.id,
+          symbol: symbol,
+          current_price: 0.12
+        ))
+
+        service.send(:handle_message, symbol, third_ticker_data)
+      end
     end
   end
 end

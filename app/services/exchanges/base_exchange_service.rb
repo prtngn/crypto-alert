@@ -43,7 +43,8 @@ module Exchanges
         threshold_price: alert.threshold_price,
         direction: alert.direction,
         notification_channel_ids: alert.notification_channel_ids,
-        last_price: nil
+        last_price: nil, # Будет установлена при первом обновлении цены
+        initialized: false # Флаг для отслеживания инициализации
       })
 
       Rails.logger.info "📥 Алерт ##{alert.id} (#{alert.symbol}) добавлен в кеш #{exchange_name}"
@@ -67,12 +68,15 @@ module Exchanges
 
     def update_alert(alert)
       data_key = "alerts:data:#{alert.id}"
+      existing_data = Rails.cache.read(data_key) || {}
+      
       Rails.cache.write(data_key, {
         symbol: alert.symbol,
         threshold_price: alert.threshold_price,
         direction: alert.direction,
         notification_channel_ids: alert.notification_channel_ids,
-        last_price: nil
+        last_price: existing_data[:last_price], # Сохраняем существующую цену
+        initialized: existing_data[:initialized] || false
       })
       Rails.logger.info "🔄 Алерт ##{alert.id} (#{alert.symbol}) обновлен в кеше #{exchange_name}"
     end
