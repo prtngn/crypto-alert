@@ -64,13 +64,38 @@
             </div>
 
             <div class="mt-4 flex-1">
-              <% if channel.config.present? %>
+              <% if channel.channel_type == 'browser' %>
+                <div class="text-sm text-gray-600">
+                  <p>Уведомления показываются в браузере через Web Notifications API</p>
+                </div>
+              <% elsif channel.channel_type == 'log' %>
+                <div class="text-sm text-gray-600">
+                  <p>Уведомления записываются в <code class="bg-gray-100 px-1 rounded">log/alerts.log</code></p>
+                </div>
+              <% elsif channel.channel_type == 'email' && channel.config&.[]('to').present? %>
                 <dl class="space-y-1">
-                  <% channel.config.each do |key, value| %>
+                  <div class="flex justify-between text-sm">
+                    <dt class="font-medium text-gray-500">Email:</dt>
+                    <dd class="text-gray-900 truncate max-w-[150px]" title="<%= channel.config['to'] %>">
+                      <%= channel.config['to'] %>
+                    </dd>
+                  </div>
+                </dl>
+              <% elsif channel.channel_type == 'telegram' && channel.config.present? %>
+                <dl class="space-y-1">
+                  <% if channel.config['chat_id'].present? %>
                     <div class="flex justify-between text-sm">
-                      <dt class="font-medium text-gray-500"><%= key.humanize %>:</dt>
-                      <dd class="text-gray-900 truncate max-w-[150px]" title="<%= value %>">
-                        <%= key.include?('token') || key.include?('password') ? '••••••••' : value %>
+                      <dt class="font-medium text-gray-500">Chat ID:</dt>
+                      <dd class="text-gray-900 truncate max-w-[150px]" title="<%= channel.config['chat_id'] %>">
+                        <%= channel.config['chat_id'] %>
+                      </dd>
+                    </div>
+                  <% end %>
+                  <% if channel.config['bot_token'].present? %>
+                    <div class="flex justify-between text-sm">
+                      <dt class="font-medium text-gray-500">Bot token:</dt>
+                      <dd class="text-gray-900 truncate max-w-[150px]">
+                        ••••••••
                       </dd>
                     </div>
                   <% end %>

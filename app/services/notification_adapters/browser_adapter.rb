@@ -1,7 +1,7 @@
 module NotificationAdapters
   class BrowserAdapter < BaseAdapter
     def send_notification(alert, current_price)
-      direction_symbol = alert.direction == "up" ? "↑" : "↓"
+      direction_symbol = alert.direction == "above" ? "↑" : "↓"
 
       ActionCable.server.broadcast("browser_notifications", {
         type: "alert_triggered",
