@@ -13,7 +13,7 @@ module NotificationAdapters
     protected
 
     def format_message(alert, current_price)
-      direction_text = alert.direction == "up" ? "выше" : "ниже"
+      direction_text = alert.direction == "above" ? "выше" : "ниже"
 
       "🚨 АЛЕРТ СРАБОТАЛ!\n\n" \
       "Символ: #{alert.symbol}\n" \

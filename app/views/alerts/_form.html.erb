@@ -48,7 +48,7 @@
             <%= form.label :direction, "Направление", class: "block text-sm font-medium text-gray-700" %>
             <div class="mt-1">
               <%= form.select :direction, 
-                  [["↑ Вверх (цена растет)", "up"], ["↓ Вниз (цена падает)", "down"]], 
+                  [["↑ Вверх (цена растет)", "above"], ["↓ Вниз (цена падает)", "below"]], 
                   {}, 
                   class: "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md #{'border-red-300' if alert.errors[:direction].any?}",
                   required: true %>

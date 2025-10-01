@@ -45,7 +45,7 @@ class NotificationChannelsController < ApplicationController
       test_alert = Alert.new(
         symbol: "BTCUSDT",
         threshold_price: 50000,
-        direction: "up",
+        direction: "above",
         triggered_at: Time.current
       )
 
